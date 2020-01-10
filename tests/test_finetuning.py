@@ -1,4 +1,5 @@
 import json
+from os.path import dirname, abspath, join
 
 import numpy as np
 from nose.plugins.attrib import attr
@@ -33,8 +34,7 @@ def get_vocabulary():
 def test_calculate_batchsize_maxlen():
     """ Batch size and max length are calculated properly.
     """
-    texts = ['a b c d',
-             'e f g h i']
+    texts = ['a b c d', 'e f g h i']
     batch_size, maxlen = calculate_batchsize_maxlen(texts)
 
     assert batch_size == 250
@@ -122,22 +122,26 @@ def test_relabel_binary():
     assert np.array_equal(relabel(inputs, 0, nb_classes), inputs)
 
 
+DATA_DIR = join(dirname(dirname(abspath(__file__))), 'data')
+SS_YOUTUBE_DATASET_DIR = join(DATA_DIR, "SS-Youtube")
+SS_YOUTUBE_DATASET_PATH = join(SS_YOUTUBE_DATASET_DIR, "raw.pickle")
+
+
 @attr('slow')
 def test_finetune_full():
     """ finetuning using 'full'.
     """
-    DATASET_PATH = '../data/SS-Youtube/raw.pickle'
     nb_classes = 2
     min_acc = 0.65
 
-    data = load_benchmark(DATASET_PATH, get_vocabulary(), extend_with=10000)
+    data = load_benchmark(SS_YOUTUBE_DATASET_PATH, get_vocabulary(), extend_with=10000)
     model = deepmoji_transfer(nb_classes, data['maxlen'], PRETRAINED_PATH,
                               extend_embedding=data['added'])
     model.summary()
     model, acc = finetune(model, data['texts'], data['labels'], nb_classes,
                           data['batch_size'], method='full', nb_epochs=1)
 
-    print(("Finetune full SS-Youtube 1 epoch acc: {}".format(acc)))
+    print("Finetune full SS-Youtube 1 epoch acc: {}".format(acc))
     assert acc >= min_acc
 
 
@@ -145,11 +149,10 @@ def test_finetune_full():
 def test_finetune_last():
     """ finetuning using 'last'.
     """
-    DATASET_PATH = '../data/SS-Youtube/raw.pickle'
     nb_classes = 2
     min_acc = 0.65
 
-    data = load_benchmark(DATASET_PATH, get_vocabulary())
+    data = load_benchmark(SS_YOUTUBE_DATASET_PATH, get_vocabulary())
 
     model = deepmoji_transfer(nb_classes, data['maxlen'], PRETRAINED_PATH)
     model.summary()
@@ -160,19 +163,28 @@ def test_finetune_last():
     assert acc >= min_acc
 
 
+TEST_SENTENCES = [
+    'I love mom\'s cooking',
+    'I love how you never reply back..',
+    'I love cruising with my homies',
+    'I love messing with yo mind!!',
+    'I love you and now you\'re just gone..',
+    'This is shit',
+    'This is the shit'
+]
+
+
+def top_elements(array, k):
+    """Given an array of emoji probabilities get the top k emoji indexes
+    for the highest probability emojis"""
+    ind = np.argpartition(array, -k)[-k:]
+    return ind[np.argsort(array[ind])][::-1]
+
+
 def test_score_emoji():
     """ Emoji predictions make sense.
     """
-    test_sentences = [
-        'I love mom\'s cooking',
-        'I love how you never reply back..',
-        'I love cruising with my homies',
-        'I love messing with yo mind!!',
-        'I love you and now you\'re just gone..',
-        'This is shit',
-        'This is the shit'
-    ]
-
+    maxlen = 30
     expected = [
         np.array([36, 4, 8, 16, 47]),
         np.array([1, 19, 55, 25, 46]),
@@ -183,16 +195,9 @@ def test_score_emoji():
         np.array([48, 11, 6, 31, 9])
     ]
 
-    def top_elements(array, k):
-        ind = np.argpartition(array, -k)[-k:]
-        return ind[np.argsort(array[ind])][::-1]
-
-    # Initialize by loading dictionary and tokenize texts
-    st = SentenceTokenizer(get_vocabulary(), 30)
-    tokenized, _, _ = st.tokenize_sentences(test_sentences)
-
-    # Load model and run
-    model = deepmoji_emojis(maxlen=30, weight_path=PRETRAINED_PATH)
+    st = SentenceTokenizer(get_vocabulary(), fixed_length=maxlen)
+    tokenized, _, _ = st.tokenize_sentences(TEST_SENTENCES)
+    model = deepmoji_emojis(maxlen=maxlen, weight_path=PRETRAINED_PATH)
     prob = model.predict(tokenized)
 
     # Find top emojis for each sentence
@@ -203,22 +208,11 @@ def test_score_emoji():
 def test_encode_texts():
     """ Text encoding is stable.
     """
-
-    TEST_SENTENCES = ['I love mom\'s cooking',
-                      'I love how you never reply back..',
-                      'I love cruising with my homies',
-                      'I love messing with yo mind!!',
-                      'I love you and now you\'re just gone..',
-                      'This is shit',
-                      'This is the shit']
-
     maxlen = 30
-
-    st = SentenceTokenizer(get_vocabulary(), maxlen)
+    st = SentenceTokenizer(get_vocabulary(), fixed_length=maxlen)
     tokenized, _, _ = st.tokenize_sentences(TEST_SENTENCES)
+    model = deepmoji_feature_encoding(maxlen=maxlen, weight_path=PRETRAINED_PATH)
+    prob = model.predict(tokenized)
 
-    model = deepmoji_feature_encoding(maxlen, PRETRAINED_PATH)
-
-    encoding = model.predict(tokenized)
-    avg_across_sentences = np.around(np.mean(encoding, axis=0)[:5], 3)
+    avg_across_sentences = np.around(np.mean(prob, axis=0)[:5], 3)
     assert np.allclose(avg_across_sentences, np.array([-0.023, 0.021, -0.037, -0.001, -0.005]))
