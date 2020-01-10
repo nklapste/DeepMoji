@@ -33,7 +33,7 @@ class VocabBuilder:
             words: Tokenized sentence whose words should be counted.
         """
         for word in words:
-            if 0 < len(word) and len(word) <= self.word_length_limit:
+            if 0 < len(word) <= self.word_length_limit:
                 try:
                     self.word_counts[word] += 1
                 except KeyError:
