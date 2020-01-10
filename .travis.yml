@@ -11,7 +11,7 @@ stages:
   - build
 
 before_install:
-  - pip install codecov nose
+  - pip install nose coverage codecov
 
 install:
   - pip install -e .[tensorflow_backend]
@@ -19,7 +19,7 @@ install:
 before_script:
   - python scripts/download_weights.py
 script:
-  - nosetests -v --with-coverage
+  - nosetests -v --with-coverage --cover-package=deepmoji
 
 after_success:
   - codecov
@@ -69,7 +69,7 @@ jobs:
         - python3 -m pip install --upgrade virtualenv
         - virtualenv -p python3 --system-site-packages "$HOME/venv"
         - source "$HOME/venv/bin/activate"
-        - python -m pip install codecov nose
+        - python -m pip install nose coverage codecov
     - os: windows
       language: sh
       python: "3.7"
@@ -77,7 +77,7 @@ jobs:
         - choco install python --version 3.7.2
         - export PATH="/c/Python37:/c/Python37/Scripts:$PATH"
         - python -m pip install --upgrade pip wheel
-        - python -m pip install codecov nose
+        - python -m pip install nose coverage codecov
       after_success:
         - python -m codecov
     - stage: build
