@@ -38,14 +38,27 @@ jobs:
     - stage: test
       python: 3.6
     - os: osx
-      osx_image: xcode9.1
-      python: 3.6
+      language: sh
+      env:
+        - TOXENV=py3
+        - HOMEBREW_NO_INSTALL_CLEANUP=1
+        - HOMEBREW_NO_ANALYTICS=1
+      before_cache:
+        # - brew cleanup
+        - rm -f "$HOME/Library/Caches/pip/log/debug.log"
+      cache:
+        directories:
+          # - "$HOME/Library/Caches/Homebrew"
+          - "$HOME/Library/Caches/pip"
+      addons:
+        homebrew:
+          # update: true
+          packages: python3
       before_install:
-      - virtualenv env
-      - source env/bin/activate
-      - curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
-      - python get-pip.py
-      - pip install codecov
+        - python3 -m pip install --upgrade virtualenv
+        - virtualenv -p python3 --system-site-packages "$HOME/venv"
+        - source "$HOME/venv/bin/activate"
+        - python -m pip install codecov nose
     - os: windows
       language: sh
       python: "3.7"
