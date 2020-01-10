@@ -1,8 +1,26 @@
+import codecs
+import re
+import os
 from setuptools import setup
+
+
+def find_version(*file_paths):
+    with codecs.open(
+        os.path.join(os.path.abspath(os.path.dirname(__file__)), *file_paths), "r"
+    ) as fp:
+        version_file = fp.read()
+    m = re.search(r"^__version__ = \((\d+), ?(\d+), ?(\d+)\)", version_file, re.M)
+    if m:
+        return "{}.{}.{}".format(*m.groups())
+    raise RuntimeError("Unable to find a valid version")
+
+
+VERSION = find_version("deepmoji", "__init__.py")
+
 
 setup(
     name="deepmoji",
-    version="1.0",
+    version=VERSION,
     packages=["deepmoji"],
     description="DeepMoji library",
     long_description=open("README.md", encoding="UTF-8").read(),
