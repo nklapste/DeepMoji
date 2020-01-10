@@ -36,9 +36,8 @@ def test_calculate_batchsize_maxlen():
     """
     texts = ['a b c d', 'e f g h i']
     batch_size, maxlen = calculate_batchsize_maxlen(texts)
-
     assert batch_size == 250
-    assert maxlen == 10, maxlen
+    assert maxlen == 10
 
 
 def test_freeze_layers():
@@ -180,7 +179,7 @@ def top_elements(array, k):
     ind = np.argpartition(array, -k)[-k:]
     return ind[np.argsort(array[ind])][::-1]
 
-
+  
 def test_score_emoji():
     """ Emoji predictions make sense.
     """
@@ -199,10 +198,9 @@ def test_score_emoji():
     tokenized, _, _ = st.tokenize_sentences(TEST_SENTENCES)
     model = deepmoji_emojis(maxlen=maxlen, weight_path=PRETRAINED_PATH)
     prob = model.predict(tokenized)
-
     # Find top emojis for each sentence
     for i, t_prob in enumerate(prob):
-        assert np.array_equal(top_elements(t_prob, 5), expected[i])
+        assert np.array_equal(top_elements(t_prob, 5), TEST_SENTENCES_EXPECTED_EMOJI_INDEXES[i])
 
 
 def test_encode_texts():
@@ -213,6 +211,5 @@ def test_encode_texts():
     tokenized, _, _ = st.tokenize_sentences(TEST_SENTENCES)
     model = deepmoji_feature_encoding(maxlen=maxlen, weight_path=PRETRAINED_PATH)
     prob = model.predict(tokenized)
-
     avg_across_sentences = np.around(np.mean(prob, axis=0)[:5], 3)
     assert np.allclose(avg_across_sentences, np.array([-0.023, 0.021, -0.037, -0.001, -0.005]))
