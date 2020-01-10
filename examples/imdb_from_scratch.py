@@ -17,28 +17,27 @@ nb_tokens = 20000
 maxlen = 80
 batch_size = 32
 
-print('Loading data...')
+print("Loading data...")
 (X_train, y_train), (X_test, y_test) = imdb.load_data(num_words=nb_tokens)
-print(len(X_train), 'train sequences')
-print(len(X_test), 'test sequences')
+print(len(X_train), "train sequences")
+print(len(X_test), "test sequences")
 
-print('Pad sequences (samples x time)')
+print("Pad sequences (samples x time)")
 X_train = sequence.pad_sequences(X_train, maxlen=maxlen)
 X_test = sequence.pad_sequences(X_test, maxlen=maxlen)
-print('X_train shape:', X_train.shape)
-print('X_test shape:', X_test.shape)
+print("X_train shape:", X_train.shape)
+print("X_test shape:", X_test.shape)
 
-print('Build model...')
+print("Build model...")
 model = deepmoji_architecture(nb_classes=2, nb_tokens=nb_tokens, maxlen=maxlen)
 model.summary()
 
-model.compile(loss='binary_crossentropy',
-              optimizer='adam',
-              metrics=['accuracy'])
+model.compile(loss="binary_crossentropy", optimizer="adam", metrics=["accuracy"])
 
-print('Train...')
-model.fit(X_train, y_train, batch_size=batch_size, epochs=15,
-          validation_data=(X_test, y_test))
+print("Train...")
+model.fit(
+    X_train, y_train, batch_size=batch_size, epochs=15, validation_data=(X_test, y_test)
+)
 score, acc = model.evaluate(X_test, y_test, batch_size=batch_size)
-print('Test score:', score)
-print('Test accuracy:', acc)
+print("Test score:", score)
+print("Test accuracy:", acc)

@@ -16,7 +16,8 @@ from sklearn.metrics import f1_score
 from deepmoji.global_variables import (
     FINETUNING_METHODS,
     FINETUNING_METRICS,
-    WEIGHTS_DIR)
+    WEIGHTS_DIR,
+)
 from deepmoji.sentence_tokenizer import SentenceTokenizer
 from deepmoji.tokenizer import tokenize
 
@@ -67,12 +68,12 @@ def load_benchmark(path, vocab, extend_with=0):
 
     # Decode data
     try:
-        texts = [str(x) for x in data['texts']]
+        texts = [str(x) for x in data["texts"]]
     except UnicodeDecodeError:
-        texts = [x.decode('utf-8') for x in data['texts']]
+        texts = [x.decode("utf-8") for x in data["texts"]]
 
     # Extract labels
-    labels = [x['label'] for x in data['info']]
+    labels = [x["label"] for x in data["info"]]
 
     batch_size, maxlen = calculate_batchsize_maxlen(texts)
 
@@ -80,17 +81,19 @@ def load_benchmark(path, vocab, extend_with=0):
 
     # Split up dataset. Extend the existing vocabulary with up to extend_with
     # tokens from the training dataset.
-    texts, labels, added = st.split_train_val_test(texts,
-                                                   labels,
-                                                   [data['train_ind'],
-                                                    data['val_ind'],
-                                                    data['test_ind']],
-                                                   extend_with=extend_with)
-    return {'texts': texts,
-            'labels': labels,
-            'added': added,
-            'batch_size': batch_size,
-            'maxlen': maxlen}
+    texts, labels, added = st.split_train_val_test(
+        texts,
+        labels,
+        [data["train_ind"], data["val_ind"], data["test_ind"]],
+        extend_with=extend_with,
+    )
+    return {
+        "texts": texts,
+        "labels": labels,
+        "added": added,
+        "batch_size": batch_size,
+        "maxlen": maxlen,
+    }
 
 
 def calculate_batchsize_maxlen(texts):
@@ -104,6 +107,7 @@ def calculate_batchsize_maxlen(texts):
         Batch size,
         max length
     """
+
     def roundup(x):
         return int(math.ceil(x / 10.0)) * 10
 
@@ -127,11 +131,14 @@ def finetuning_callbacks(checkpoint_path, patience, verbose):
         Array with training callbacks that can be passed straight into
         model.fit() or similar.
     """
-    cb_verbose = (verbose >= 2)
-    checkpointer = ModelCheckpoint(monitor='val_loss', filepath=checkpoint_path,
-                                   save_best_only=True, verbose=cb_verbose)
-    earlystop = EarlyStopping(monitor='val_loss', patience=patience,
-                              verbose=cb_verbose)
+    cb_verbose = verbose >= 2
+    checkpointer = ModelCheckpoint(
+        monitor="val_loss",
+        filepath=checkpoint_path,
+        save_best_only=True,
+        verbose=cb_verbose,
+    )
+    earlystop = EarlyStopping(monitor="val_loss", patience=patience, verbose=cb_verbose)
     return [checkpointer, earlystop]
 
 
@@ -149,7 +156,9 @@ def freeze_layers(model, unfrozen_types=[], unfrozen_keyword=None):
     """
     for l in model.layers:
         if len(l.trainable_weights):
-            trainable = (type(l) in unfrozen_types or (unfrozen_keyword is not None and unfrozen_keyword in l.name))
+            trainable = type(l) in unfrozen_types or (
+                unfrozen_keyword is not None and unfrozen_keyword in l.name
+            )
             change_trainable(l, trainable, verbose=False)
     return model
 
@@ -174,12 +183,11 @@ def change_trainable(layer, trainable, verbose=False):
         layer.backward_layer.trainable = trainable
 
     if verbose:
-        action = 'Unfroze' if trainable else 'Froze'
+        action = "Unfroze" if trainable else "Froze"
         print("{} {}".format(action, layer.name))
 
 
-def find_f1_threshold(y_val, y_pred_val, y_test, y_pred_test,
-                      average='binary'):
+def find_f1_threshold(y_val, y_pred_val, y_test, y_pred_test, average="binary"):
     """ Choose a threshold for F1 based on the validation dataset
         (see https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4442797/
         for details on why to find another threshold than simply 0.5)
@@ -198,12 +206,12 @@ def find_f1_threshold(y_val, y_pred_val, y_test, y_pred_test,
     f1_scores = []
 
     for t in thresholds:
-        y_pred_val_ind = (y_pred_val > t)
+        y_pred_val_ind = y_pred_val > t
         f1_val = f1_score(y_val, y_pred_val_ind, average=average)
         f1_scores.append(f1_val)
 
     best_t = thresholds[np.argmax(f1_scores)]
-    y_pred_ind = (y_pred_test > best_t)
+    y_pred_ind = y_pred_test > best_t
     f1_test = f1_score(y_test, y_pred_ind, average=average)
     return f1_test, best_t
 
@@ -233,8 +241,9 @@ def relabel(y, current_label_nr, nb_classes):
     return y_new
 
 
-def sampling_generator(X_in, y_in, batch_size, epoch_size=25000,
-                       upsample=False, seed=42):
+def sampling_generator(
+    X_in, y_in, batch_size, epoch_size=25000, upsample=False, seed=42
+):
     """ Returns a generator that enables larger epochs on small datasets and
         has upsampling functionality.
 
@@ -284,8 +293,8 @@ def sampling_generator(X_in, y_in, batch_size, epoch_size=25000,
             X, y = X[p], y[p]
 
             label_dist = np.mean(y)
-            assert(label_dist > 0.45)
-            assert(label_dist < 0.55)
+            assert label_dist > 0.45
+            assert label_dist < 0.55
 
         # Hand-off data using batch_size
         for i in range(int(epoch_size / batch_size)):
@@ -294,9 +303,19 @@ def sampling_generator(X_in, y_in, batch_size, epoch_size=25000,
             yield (X[start:end], y[start:end])
 
 
-def finetune(model, texts, labels, nb_classes, batch_size, method,
-             metric='acc', epoch_size=5000, nb_epochs=1000,
-             error_checking=True, verbose=1):
+def finetune(
+    model,
+    texts,
+    labels,
+    nb_classes,
+    batch_size,
+    method,
+    metric="acc",
+    epoch_size=5000,
+    nb_epochs=1000,
+    error_checking=True,
+    verbose=1,
+):
     """ Compiles and finetunes the given model.
 
     # Arguments:
@@ -323,79 +342,105 @@ def finetune(model, texts, labels, nb_classes, batch_size, method,
     """
 
     if method not in FINETUNING_METHODS:
-        raise ValueError('ERROR (finetune): Invalid method parameter. '
-                         'Available options: {}'.format(FINETUNING_METHODS))
+        raise ValueError(
+            "ERROR (finetune): Invalid method parameter. "
+            "Available options: {}".format(FINETUNING_METHODS)
+        )
     if metric not in FINETUNING_METRICS:
-        raise ValueError('ERROR (finetune): Invalid metric parameter. '
-                         'Available options: {}'.format(FINETUNING_METRICS))
+        raise ValueError(
+            "ERROR (finetune): Invalid metric parameter. "
+            "Available options: {}".format(FINETUNING_METRICS)
+        )
 
     (X_train, y_train) = (texts[0], labels[0])
     (X_val, y_val) = (texts[1], labels[1])
     (X_test, y_test) = (texts[2], labels[2])
 
-    checkpoint_path = '{}/deepmoji-checkpoint-{}.hdf5' \
-                      .format(WEIGHTS_DIR, str(uuid.uuid4()))
+    checkpoint_path = "{}/deepmoji-checkpoint-{}.hdf5".format(
+        WEIGHTS_DIR, str(uuid.uuid4())
+    )
 
     # Check dimension of labels
     if error_checking:
         for ls in [y_train, y_val, y_test]:
             if not ls.ndim == 1:
-                print('WARNING (finetune): The dimension of the '
-                      'provided label list does not match the expected '
-                      'value. When using the \'{}\' metric, the labels '
-                      'should be a 1-dimensional array. '
-                      'Input shape was {}'.format(metric, ls.shape))
+                print(
+                    "WARNING (finetune): The dimension of the "
+                    "provided label list does not match the expected "
+                    "value. When using the '{}' metric, the labels "
+                    "should be a 1-dimensional array. "
+                    "Input shape was {}".format(metric, ls.shape)
+                )
                 break
 
-    if method in ['last', 'new']:
+    if method in ["last", "new"]:
         lr = 0.001
-    elif method in ['full', 'chain-thaw']:
+    elif method in ["full", "chain-thaw"]:
         lr = 0.0001
 
-    loss = 'binary_crossentropy' if nb_classes <= 2 \
-        else 'categorical_crossentropy'
+    loss = "binary_crossentropy" if nb_classes <= 2 else "categorical_crossentropy"
 
     # Freeze layers if using last
-    if method == 'last':
-        model = freeze_layers(model, unfrozen_keyword='softmax')
+    if method == "last":
+        model = freeze_layers(model, unfrozen_keyword="softmax")
 
     # Compile model, for chain-thaw we compile it later (after freezing)
-    if method != 'chain-thaw':
+    if method != "chain-thaw":
         adam = Adam(clipnorm=1, lr=lr)
-        model.compile(loss=loss, optimizer=adam, metrics=['accuracy'])
+        model.compile(loss=loss, optimizer=adam, metrics=["accuracy"])
 
     # Training
     if verbose:
-        print('Method:  {}'.format(method))
-        print('Metric:  {}'.format(metric))
-        print('Classes: {}'.format(nb_classes))
+        print("Method:  {}".format(method))
+        print("Metric:  {}".format(metric))
+        print("Classes: {}".format(nb_classes))
 
-    if method == 'chain-thaw':
-        result = chain_thaw(model, nb_classes=nb_classes,
-                            train=(X_train, y_train),
-                            val=(X_val, y_val),
-                            test=(X_test, y_test),
-                            batch_size=batch_size, loss=loss,
-                            epoch_size=epoch_size,
-                            nb_epochs=nb_epochs,
-                            checkpoint_weight_path=checkpoint_path,
-                            evaluate=metric, verbose=verbose)
+    if method == "chain-thaw":
+        result = chain_thaw(
+            model,
+            nb_classes=nb_classes,
+            train=(X_train, y_train),
+            val=(X_val, y_val),
+            test=(X_test, y_test),
+            batch_size=batch_size,
+            loss=loss,
+            epoch_size=epoch_size,
+            nb_epochs=nb_epochs,
+            checkpoint_weight_path=checkpoint_path,
+            evaluate=metric,
+            verbose=verbose,
+        )
     else:
-        result = tune_trainable(model, nb_classes=nb_classes,
-                                train=(X_train, y_train),
-                                val=(X_val, y_val),
-                                test=(X_test, y_test),
-                                epoch_size=epoch_size,
-                                nb_epochs=nb_epochs,
-                                batch_size=batch_size,
-                                checkpoint_weight_path=checkpoint_path,
-                                evaluate=metric, verbose=verbose)
+        result = tune_trainable(
+            model,
+            nb_classes=nb_classes,
+            train=(X_train, y_train),
+            val=(X_val, y_val),
+            test=(X_test, y_test),
+            epoch_size=epoch_size,
+            nb_epochs=nb_epochs,
+            batch_size=batch_size,
+            checkpoint_weight_path=checkpoint_path,
+            evaluate=metric,
+            verbose=verbose,
+        )
     return model, result
 
 
-def tune_trainable(model, nb_classes, train, val, test, epoch_size,
-                   nb_epochs, batch_size, checkpoint_weight_path,
-                   patience=5, evaluate='acc', verbose=1):
+def tune_trainable(
+    model,
+    nb_classes,
+    train,
+    val,
+    test,
+    epoch_size,
+    nb_epochs,
+    batch_size,
+    checkpoint_weight_path,
+    patience=5,
+    evaluate="acc",
+    verbose=1,
+):
     """ Finetunes the given model using the accuracy measure.
 
     # Arguments:
@@ -432,15 +477,18 @@ def tune_trainable(model, nb_classes, train, val, test, epoch_size,
         print("Training..")
 
     # Use sample generator for fixed-size epoch
-    train_gen = sampling_generator(X_train, y_train,
-                                   batch_size, upsample=False)
+    train_gen = sampling_generator(X_train, y_train, batch_size, upsample=False)
     callbacks = finetuning_callbacks(checkpoint_weight_path, patience, verbose)
     steps = int(epoch_size / batch_size)
-    model.fit_generator(train_gen, steps_per_epoch=steps,
-                        epochs=nb_epochs,
-                        validation_data=(X_val, y_val),
-                        validation_steps=steps,
-                        callbacks=callbacks, verbose=(verbose >= 2))
+    model.fit_generator(
+        train_gen,
+        steps_per_epoch=steps,
+        epochs=nb_epochs,
+        validation_data=(X_val, y_val),
+        validation_steps=steps,
+        callbacks=callbacks,
+        verbose=(verbose >= 2),
+    )
 
     # Reload the best weights found to avoid overfitting
     # Wait a bit to allow proper closing of weights file
@@ -449,15 +497,15 @@ def tune_trainable(model, nb_classes, train, val, test, epoch_size,
     if verbose >= 2:
         print("Loaded weights from {}".format(checkpoint_weight_path))
 
-    if evaluate == 'acc':
+    if evaluate == "acc":
         return evaluate_using_acc(model, X_test, y_test, batch_size=batch_size)
-    elif evaluate == 'weighted_f1':
-        return evaluate_using_weighted_f1(model, X_test, y_test, X_val, y_val,
-                                          batch_size=batch_size)
+    elif evaluate == "weighted_f1":
+        return evaluate_using_weighted_f1(
+            model, X_test, y_test, X_val, y_val, batch_size=batch_size
+        )
 
 
-def evaluate_using_weighted_f1(model, X_test, y_test, X_val, y_val,
-                               batch_size):
+def evaluate_using_weighted_f1(model, X_test, y_test, X_val, y_val, batch_size):
     """ Evaluation function using macro weighted F1 score.
 
     # Arguments:
@@ -474,8 +522,9 @@ def evaluate_using_weighted_f1(model, X_test, y_test, X_val, y_val,
     y_pred_test = np.array(model.predict(X_test, batch_size=batch_size))
     y_pred_val = np.array(model.predict(X_val, batch_size=batch_size))
 
-    f1_test, _ = find_f1_threshold(y_val, y_pred_val, y_test, y_pred_test,
-                                   average='weighted_f1')
+    f1_test, _ = find_f1_threshold(
+        y_val, y_pred_val, y_test, y_pred_test, average="weighted_f1"
+    )
     return f1_test
 
 
@@ -496,11 +545,24 @@ def evaluate_using_acc(model, X_test, y_test, batch_size):
     return acc
 
 
-def chain_thaw(model, nb_classes, train, val, test, batch_size,
-               loss, epoch_size, nb_epochs, checkpoint_weight_path,
-               patience=5,
-               initial_lr=0.001, next_lr=0.0001, seed=None,
-               verbose=1, evaluate='acc'):
+def chain_thaw(
+    model,
+    nb_classes,
+    train,
+    val,
+    test,
+    batch_size,
+    loss,
+    epoch_size,
+    nb_epochs,
+    checkpoint_weight_path,
+    patience=5,
+    initial_lr=0.001,
+    next_lr=0.0001,
+    seed=None,
+    verbose=1,
+    evaluate="acc",
+):
     """ Finetunes given model using chain-thaw and evaluates using accuracy.
 
     # Arguments:
@@ -536,30 +598,50 @@ def chain_thaw(model, nb_classes, train, val, test, batch_size,
         y_test = to_categorical(y_test)
 
     if verbose:
-        print('Training..')
+        print("Training..")
 
     # Use sample generator for fixed-size epoch
-    train_gen = sampling_generator(X_train, y_train, batch_size,
-                                   upsample=False, seed=seed)
+    train_gen = sampling_generator(
+        X_train, y_train, batch_size, upsample=False, seed=seed
+    )
     callbacks = finetuning_callbacks(checkpoint_weight_path, patience, verbose)
 
     # Train using chain-thaw
-    train_by_chain_thaw(model=model, train_gen=train_gen,
-                        val_data=(X_val, y_val), loss=loss, callbacks=callbacks,
-                        epoch_size=epoch_size, nb_epochs=nb_epochs,
-                        checkpoint_weight_path=checkpoint_weight_path,
-                        batch_size=batch_size, verbose=verbose)
+    train_by_chain_thaw(
+        model=model,
+        train_gen=train_gen,
+        val_data=(X_val, y_val),
+        loss=loss,
+        callbacks=callbacks,
+        epoch_size=epoch_size,
+        nb_epochs=nb_epochs,
+        checkpoint_weight_path=checkpoint_weight_path,
+        batch_size=batch_size,
+        verbose=verbose,
+    )
 
-    if evaluate == 'acc':
+    if evaluate == "acc":
         return evaluate_using_acc(model, X_test, y_test, batch_size=batch_size)
-    elif evaluate == 'weighted_f1':
-        return evaluate_using_weighted_f1(model, X_test, y_test, X_val, y_val,
-                                          batch_size=batch_size)
+    elif evaluate == "weighted_f1":
+        return evaluate_using_weighted_f1(
+            model, X_test, y_test, X_val, y_val, batch_size=batch_size
+        )
 
 
-def train_by_chain_thaw(model, train_gen, val_data, loss, callbacks, epoch_size,
-                        nb_epochs, checkpoint_weight_path, batch_size,
-                        initial_lr=0.001, next_lr=0.0001, verbose=1):
+def train_by_chain_thaw(
+    model,
+    train_gen,
+    val_data,
+    loss,
+    callbacks,
+    epoch_size,
+    nb_epochs,
+    checkpoint_weight_path,
+    batch_size,
+    initial_lr=0.001,
+    next_lr=0.0001,
+    verbose=1,
+):
     """ Finetunes model using the chain-thaw method.
 
     This is done as follows:
@@ -584,8 +666,7 @@ def train_by_chain_thaw(model, train_gen, val_data, loss, callbacks, epoch_size,
         verbose: Verbosity flag.
     """
     # Get trainable layers
-    layers = [layer for layer in model.layers
-              if len(layer.trainable_weights)]
+    layers = [layer for layer in model.layers if len(layer.trainable_weights)]
 
     # Bring last layer to front
     layers.insert(0, layers.pop(len(layers) - 1))
@@ -616,19 +697,24 @@ def train_by_chain_thaw(model, train_gen, val_data, loss, callbacks, epoch_size,
                 assert _layer.trainable == (_layer == layer) or layer is None
 
         model.cache = False
-        model.compile(loss=loss, optimizer=adam, metrics=['accuracy'])
+        model.compile(loss=loss, optimizer=adam, metrics=["accuracy"])
         model.cache = True
 
         if verbose:
             if layer is None:
-                print('Finetuning all layers')
+                print("Finetuning all layers")
             else:
-                print('Finetuning {}'.format(layer.name))
+                print("Finetuning {}".format(layer.name))
 
         steps = int(epoch_size / batch_size)
-        model.fit_generator(train_gen, steps_per_epoch=steps,
-                            epochs=nb_epochs, validation_data=val_data,
-                            callbacks=callbacks, verbose=(verbose >= 2))
+        model.fit_generator(
+            train_gen,
+            steps_per_epoch=steps,
+            epochs=nb_epochs,
+            validation_data=val_data,
+            callbacks=callbacks,
+            verbose=(verbose >= 2),
+        )
 
         # Reload the best weights found to avoid overfitting
         # Wait a bit to allow proper closing of weights file

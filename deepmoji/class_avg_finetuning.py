@@ -13,10 +13,9 @@ from deepmoji.finetuning import (
     sampling_generator,
     finetuning_callbacks,
     train_by_chain_thaw,
-    find_f1_threshold)
-from deepmoji.global_variables import (
-    FINETUNING_METHODS,
-    WEIGHTS_DIR)
+    find_f1_threshold,
+)
+from deepmoji.global_variables import FINETUNING_METHODS, WEIGHTS_DIR
 
 
 def relabel(y, current_label_nr, nb_classes):
@@ -44,10 +43,18 @@ def relabel(y, current_label_nr, nb_classes):
     return y_new
 
 
-def class_avg_finetune(model, texts, labels, nb_classes, batch_size,
-                       method, epoch_size=5000,
-                       nb_epochs=1000, error_checking=True,
-                       verbose=True):
+def class_avg_finetune(
+    model,
+    texts,
+    labels,
+    nb_classes,
+    batch_size,
+    method,
+    epoch_size=5000,
+    nb_epochs=1000,
+    error_checking=True,
+    verbose=True,
+):
     """ Compiles and finetunes the given model.
 
     # Arguments:
@@ -73,19 +80,21 @@ def class_avg_finetune(model, texts, labels, nb_classes, batch_size,
     """
 
     if method not in FINETUNING_METHODS:
-        raise ValueError('ERROR (class_avg_tune_trainable): '
-                         'Invalid method parameter. '
-                         'Available options: {}'.format(FINETUNING_METHODS))
+        raise ValueError(
+            "ERROR (class_avg_tune_trainable): "
+            "Invalid method parameter. "
+            "Available options: {}".format(FINETUNING_METHODS)
+        )
 
     (X_train, y_train) = (texts[0], labels[0])
     (X_val, y_val) = (texts[1], labels[1])
     (X_test, y_test) = (texts[2], labels[2])
 
-    checkpoint_path = '{}/deepmoji-checkpoint-{}.hdf5' \
-                      .format(WEIGHTS_DIR, str(uuid.uuid4()))
+    checkpoint_path = "{}/deepmoji-checkpoint-{}.hdf5".format(
+        WEIGHTS_DIR, str(uuid.uuid4())
+    )
 
-    f1_init_path = '{}/deepmoji-f1-init-{}.hdf5' \
-                   .format(WEIGHTS_DIR, str(uuid.uuid4()))
+    f1_init_path = "{}/deepmoji-f1-init-{}.hdf5".format(WEIGHTS_DIR, str(uuid.uuid4()))
 
     # Check dimension of labels
     if error_checking:
@@ -94,56 +103,64 @@ def class_avg_finetune(model, texts, labels, nb_classes, batch_size,
 
         for ls in [y_train, y_val, y_test]:
             if len(ls.shape) <= 1 or not ls.shape[1] == expected_shape:
-                print('WARNING (class_avg_tune_trainable): '
-                      'The dimension of the provided '
-                      'labels do not match the expected value. '
-                      'Expected: {}, actual: {}'
-                      .format(expected_shape, ls.shape[1]))
+                print(
+                    "WARNING (class_avg_tune_trainable): "
+                    "The dimension of the provided "
+                    "labels do not match the expected value. "
+                    "Expected: {}, actual: {}".format(expected_shape, ls.shape[1])
+                )
                 break
 
-    if method in ['last', 'new']:
+    if method in ["last", "new"]:
         lr = 0.001
-    elif method in ['full', 'chain-thaw']:
+    elif method in ["full", "chain-thaw"]:
         lr = 0.0001
 
-    loss = 'binary_crossentropy'
+    loss = "binary_crossentropy"
 
     # Freeze layers if using last
-    if method == 'last':
-        model = freeze_layers(model, unfrozen_keyword='softmax')
+    if method == "last":
+        model = freeze_layers(model, unfrozen_keyword="softmax")
 
     # Compile model, for chain-thaw we compile it later (after freezing)
-    if method != 'chain-thaw':
+    if method != "chain-thaw":
         adam = Adam(clipnorm=1, lr=lr)
-        model.compile(loss=loss, optimizer=adam, metrics=['accuracy'])
+        model.compile(loss=loss, optimizer=adam, metrics=["accuracy"])
 
     # Training
     if verbose:
-        print('Method:  {}'.format(method))
-        print('Classes: {}'.format(nb_classes))
+        print("Method:  {}".format(method))
+        print("Classes: {}".format(nb_classes))
 
-    if method == 'chain-thaw':
-        result = class_avg_chainthaw(model, nb_classes=nb_classes,
-                                     train=(X_train, y_train),
-                                     val=(X_val, y_val),
-                                     test=(X_test, y_test),
-                                     batch_size=batch_size, loss=loss,
-                                     epoch_size=epoch_size,
-                                     nb_epochs=nb_epochs,
-                                     checkpoint_weight_path=checkpoint_path,
-                                     f1_init_weight_path=f1_init_path,
-                                     verbose=verbose)
+    if method == "chain-thaw":
+        result = class_avg_chainthaw(
+            model,
+            nb_classes=nb_classes,
+            train=(X_train, y_train),
+            val=(X_val, y_val),
+            test=(X_test, y_test),
+            batch_size=batch_size,
+            loss=loss,
+            epoch_size=epoch_size,
+            nb_epochs=nb_epochs,
+            checkpoint_weight_path=checkpoint_path,
+            f1_init_weight_path=f1_init_path,
+            verbose=verbose,
+        )
     else:
-        result = class_avg_tune_trainable(model, nb_classes=nb_classes,
-                                          train=(X_train, y_train),
-                                          val=(X_val, y_val),
-                                          test=(X_test, y_test),
-                                          epoch_size=epoch_size,
-                                          nb_epochs=nb_epochs,
-                                          batch_size=batch_size,
-                                          init_weight_path=f1_init_path,
-                                          checkpoint_weight_path=checkpoint_path,
-                                          verbose=verbose)
+        result = class_avg_tune_trainable(
+            model,
+            nb_classes=nb_classes,
+            train=(X_train, y_train),
+            val=(X_val, y_val),
+            test=(X_test, y_test),
+            epoch_size=epoch_size,
+            nb_epochs=nb_epochs,
+            batch_size=batch_size,
+            init_weight_path=f1_init_path,
+            checkpoint_weight_path=checkpoint_path,
+            verbose=verbose,
+        )
     return model, result
 
 
@@ -158,18 +175,26 @@ def prepare_labels(y_train, y_val, y_test, iter_i, nb_classes):
 def prepare_generators(X_train, y_train_new, X_val, y_val_new, batch_size, epoch_size):
     # Create sample generators
     # Make a fixed validation set to avoid fluctuations in validation
-    train_gen = sampling_generator(X_train, y_train_new, batch_size,
-                                   upsample=False)
-    val_gen = sampling_generator(X_val, y_val_new,
-                                 epoch_size, upsample=False)
+    train_gen = sampling_generator(X_train, y_train_new, batch_size, upsample=False)
+    val_gen = sampling_generator(X_val, y_val_new, epoch_size, upsample=False)
     X_val_resamp, y_val_resamp = next(val_gen)
     return train_gen, X_val_resamp, y_val_resamp
 
 
-def class_avg_tune_trainable(model, nb_classes, train, val, test, epoch_size,
-                             nb_epochs, batch_size, init_weight_path,
-                             checkpoint_weight_path, patience=5,
-                             verbose=True):
+def class_avg_tune_trainable(
+    model,
+    nb_classes,
+    train,
+    val,
+    test,
+    epoch_size,
+    nb_epochs,
+    batch_size,
+    init_weight_path,
+    checkpoint_weight_path,
+    patience=5,
+    verbose=True,
+):
     """ Finetunes the given model using the F1 measure.
 
     # Arguments:
@@ -203,23 +228,29 @@ def class_avg_tune_trainable(model, nb_classes, train, val, test, epoch_size,
     model.save_weights(init_weight_path)
     for i in range(nb_iter):
         if verbose:
-            print('Iteration number {}/{}'.format(i + 1, nb_iter))
+            print("Iteration number {}/{}".format(i + 1, nb_iter))
 
         model.load_weights(init_weight_path, by_name=False)
-        y_train_new, y_val_new, y_test_new = prepare_labels(y_train, y_val,
-                                                            y_test, i, nb_classes)
-        train_gen, X_val_resamp, y_val_resamp = \
-            prepare_generators(X_train, y_train_new, X_val, y_val_new,
-                               batch_size, epoch_size)
+        y_train_new, y_val_new, y_test_new = prepare_labels(
+            y_train, y_val, y_test, i, nb_classes
+        )
+        train_gen, X_val_resamp, y_val_resamp = prepare_generators(
+            X_train, y_train_new, X_val, y_val_new, batch_size, epoch_size
+        )
 
         if verbose:
             print("Training..")
         callbacks = finetuning_callbacks(checkpoint_weight_path, patience, verbose=2)
         steps = int(epoch_size / batch_size)
-        model.fit_generator(train_gen, steps_per_epoch=steps,
-                            max_q_size=2, epochs=nb_epochs,
-                            validation_data=(X_val_resamp, y_val_resamp),
-                            callbacks=callbacks, verbose=0)
+        model.fit_generator(
+            train_gen,
+            steps_per_epoch=steps,
+            max_q_size=2,
+            epochs=nb_epochs,
+            validation_data=(X_val_resamp, y_val_resamp),
+            callbacks=callbacks,
+            verbose=0,
+        )
 
         # Reload the best weights found to avoid overfitting
         # Wait a bit to allow proper closing of weights file
@@ -230,21 +261,35 @@ def class_avg_tune_trainable(model, nb_classes, train, val, test, epoch_size,
         y_pred_val = np.array(model.predict(X_val, batch_size=batch_size))
         y_pred_test = np.array(model.predict(X_test, batch_size=batch_size))
 
-        f1_test, best_t = find_f1_threshold(y_val_new, y_pred_val,
-                                            y_test_new, y_pred_test)
+        f1_test, best_t = find_f1_threshold(
+            y_val_new, y_pred_val, y_test_new, y_pred_test
+        )
         if verbose:
-            print('f1_test: {}'.format(f1_test))
-            print('best_t:  {}'.format(best_t))
+            print("f1_test: {}".format(f1_test))
+            print("best_t:  {}".format(best_t))
         total_f1 += f1_test
 
     return total_f1 / nb_iter
 
 
-def class_avg_chainthaw(model, nb_classes, train, val, test, batch_size,
-                        loss, epoch_size, nb_epochs, checkpoint_weight_path,
-                        f1_init_weight_path, patience=5,
-                        initial_lr=0.001, next_lr=0.0001,
-                        seed=None, verbose=True):
+def class_avg_chainthaw(
+    model,
+    nb_classes,
+    train,
+    val,
+    test,
+    batch_size,
+    loss,
+    epoch_size,
+    nb_epochs,
+    checkpoint_weight_path,
+    f1_init_weight_path,
+    patience=5,
+    initial_lr=0.001,
+    next_lr=0.0001,
+    seed=None,
+    verbose=True,
+):
     """ Finetunes given model using chain-thaw and evaluates using F1.
         For a dataset with multiple classes, the model is trained once for
         each class, relabeling those classes into a binary classification task.
@@ -287,38 +332,49 @@ def class_avg_chainthaw(model, nb_classes, train, val, test, batch_size,
 
     for i in range(nb_iter):
         if verbose:
-            print('Iteration number {}/{}'.format(i + 1, nb_iter))
+            print("Iteration number {}/{}".format(i + 1, nb_iter))
 
         model.load_weights(f1_init_weight_path, by_name=False)
-        y_train_new, y_val_new, y_test_new = prepare_labels(y_train, y_val,
-                                                            y_test, i, nb_classes)
-        train_gen, X_val_resamp, y_val_resamp = \
-            prepare_generators(X_train, y_train_new, X_val, y_val_new,
-                               batch_size, epoch_size)
+        y_train_new, y_val_new, y_test_new = prepare_labels(
+            y_train, y_val, y_test, i, nb_classes
+        )
+        train_gen, X_val_resamp, y_val_resamp = prepare_generators(
+            X_train, y_train_new, X_val, y_val_new, batch_size, epoch_size
+        )
 
         if verbose:
             print("Training..")
-        callbacks = finetuning_callbacks(checkpoint_weight_path, patience=patience, verbose=2)
+        callbacks = finetuning_callbacks(
+            checkpoint_weight_path, patience=patience, verbose=2
+        )
 
         # Train using chain-thaw
-        train_by_chain_thaw(model=model, train_gen=train_gen,
-                            val_data=(X_val_resamp, y_val_resamp),
-                            loss=loss, callbacks=callbacks,
-                            epoch_size=epoch_size, nb_epochs=nb_epochs,
-                            checkpoint_weight_path=checkpoint_weight_path,
-                            initial_lr=initial_lr, next_lr=next_lr,
-                            batch_size=batch_size, verbose=verbose)
+        train_by_chain_thaw(
+            model=model,
+            train_gen=train_gen,
+            val_data=(X_val_resamp, y_val_resamp),
+            loss=loss,
+            callbacks=callbacks,
+            epoch_size=epoch_size,
+            nb_epochs=nb_epochs,
+            checkpoint_weight_path=checkpoint_weight_path,
+            initial_lr=initial_lr,
+            next_lr=next_lr,
+            batch_size=batch_size,
+            verbose=verbose,
+        )
 
         # Evaluate
         y_pred_val = np.array(model.predict(X_val, batch_size=batch_size))
         y_pred_test = np.array(model.predict(X_test, batch_size=batch_size))
 
-        f1_test, best_t = find_f1_threshold(y_val_new, y_pred_val,
-                                            y_test_new, y_pred_test)
+        f1_test, best_t = find_f1_threshold(
+            y_val_new, y_pred_val, y_test_new, y_pred_test
+        )
 
         if verbose:
-            print('f1_test: {}'.format(f1_test))
-            print('best_t:  {}'.format(best_t))
+            print("f1_test: {}".format(f1_test))
+            print("best_t:  {}".format(best_t))
         total_f1 += f1_test
 
     return total_f1 / nb_iter

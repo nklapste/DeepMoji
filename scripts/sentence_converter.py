@@ -103,10 +103,7 @@ def get_top_emojis(st, deepmoji_model, sentence: str) -> List[str]:
 
 def main():
     sentence_tokenizer = SentenceTokenizer(get_vocabulary(), 30)
-    deepmoji_model = deepmoji_emojis(
-        maxlen=30,
-        weight_path=PRETRAINED_PATH,
-    )
+    deepmoji_model = deepmoji_emojis(maxlen=30, weight_path=PRETRAINED_PATH,)
     while True:
         sentence = input("enter sentence:").strip()
         if sentence:

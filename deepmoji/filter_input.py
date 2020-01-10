@@ -1,4 +1,3 @@
-
 import codecs
 import csv
 
@@ -11,7 +10,7 @@ def read_english(path="english_words.txt", add_emojis=True):
     english = set()
     with codecs.open(path, "r", "utf-8") as f:
         for line in f:
-            line = line.strip().lower().replace('\n', '')
+            line = line.strip().lower().replace("\n", "")
             if len(line):
                 english.add(line)
     if add_emojis:
@@ -22,18 +21,18 @@ def read_english(path="english_words.txt", add_emojis=True):
 
 def read_wanted_emojis(path="wanted_emojis.csv"):
     emojis = []
-    with open(path, 'rb') as f:
+    with open(path, "rb") as f:
         reader = csv.reader(f)
         for line in reader:
-            line = line[0].strip().replace('\n', '')
-            line = line.decode('unicode-escape')
+            line = line[0].strip().replace("\n", "")
+            line = line.decode("unicode-escape")
             emojis.append(line)
     return emojis
 
 
 def read_non_english_users(path="unwanted_users.npz"):
     try:
-        neu_set = set(np.load(path)['userids'])
+        neu_set = set(np.load(path)["userids"])
     except IOError:
         neu_set = set()
     return neu_set

@@ -23,10 +23,10 @@ from deepmoji.finetuning import load_benchmark
 from deepmoji.global_variables import PRETRAINED_PATH, VOCAB_PATH
 from deepmoji.model_def import deepmoji_transfer
 
-DATASET_PATH = '../data/SE0714/raw.pickle'
+DATASET_PATH = "../data/SE0714/raw.pickle"
 nb_classes = 3
 
-with open(VOCAB_PATH, 'r') as f:
+with open(VOCAB_PATH, "r") as f:
     vocab = json.load(f)
 
 
@@ -40,11 +40,13 @@ data = load_benchmark(DATASET_PATH, vocab, extend_with=10000)
 # Also note that when using class average F1 to evaluate, the model has to be
 # defined with two classes, since the model will be trained for each class
 # separately.
-model = deepmoji_transfer(2, data['maxlen'], PRETRAINED_PATH,
-                          extend_embedding=data['added'])
+model = deepmoji_transfer(
+    2, data["maxlen"], PRETRAINED_PATH, extend_embedding=data["added"]
+)
 model.summary()
 
 # For finetuning however, pass in the actual number of classes.
-model, f1 = class_avg_finetune(model, data['texts'], data['labels'],
-                               nb_classes, data['batch_size'], method='last')
-print('F1: {}'.format(f1))
+model, f1 = class_avg_finetune(
+    model, data["texts"], data["labels"], nb_classes, data["batch_size"], method="last"
+)
+print("F1: {}".format(f1))

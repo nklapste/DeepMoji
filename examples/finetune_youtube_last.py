@@ -12,24 +12,23 @@ The 'last' method does the following:
 
 import json
 
-from deepmoji.finetuning import (
-    load_benchmark,
-    finetune)
+from deepmoji.finetuning import load_benchmark, finetune
 from deepmoji.global_variables import PRETRAINED_PATH, VOCAB_PATH
 from deepmoji.model_def import deepmoji_transfer
 
-DATASET_PATH = '../data/SS-Youtube/raw.pickle'
+DATASET_PATH = "../data/SS-Youtube/raw.pickle"
 nb_classes = 2
 
-with open(VOCAB_PATH, 'r') as f:
+with open(VOCAB_PATH, "r") as f:
     vocab = json.load(f)
 
 # Load dataset.
 data = load_benchmark(DATASET_PATH, vocab)
 
 # Set up model and finetune
-model = deepmoji_transfer(nb_classes, data['maxlen'], PRETRAINED_PATH)
+model = deepmoji_transfer(nb_classes, data["maxlen"], PRETRAINED_PATH)
 model.summary()
-model, acc = finetune(model, data['texts'], data['labels'], nb_classes,
-                      data['batch_size'], method='last')
-print('Acc: {}'.format(acc))
+model, acc = finetune(
+    model, data["texts"], data["labels"], nb_classes, data["batch_size"], method="last"
+)
+print("Acc: {}".format(acc))

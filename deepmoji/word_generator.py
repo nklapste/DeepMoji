@@ -1,8 +1,8 @@
-''' Extracts lists of words from a given input to be used for later vocabulary
+""" Extracts lists of words from a given input to be used for later vocabulary
     generation or for creating tokenized datasets.
     Supports functionality for handling different file types and
     filtering/processing of this input.
-'''
+"""
 
 import re
 import unicodedata
@@ -19,34 +19,41 @@ from deepmoji.filter_utils import (
     process_word,
     punct_word,
     remove_variation_selectors,
-    separate_emojis_and_text)
+    separate_emojis_and_text,
+)
 from deepmoji.tokenizer import RE_MENTION, tokenize
 
 # Only catch retweets in the beginning of the tweet as those are the
 # automatically added ones.
 # We do not want to remove tweets like "Omg.. please RT this!!"
-RETWEETS_RE = re.compile(r'^[rR][tT]')
+RETWEETS_RE = re.compile(r"^[rR][tT]")
 
 # Use fast and less precise regex for removing tweets with URLs
 # It doesn't matter too much if a few tweets with URL's make it through
-URLS_RE = re.compile(r'https?://|www\.')
+URLS_RE = re.compile(r"https?://|www\.")
 
 MENTION_RE = re.compile(RE_MENTION)
 ALLOWED_CONVERTED_UNICODE_PUNCTUATION = """!"#$'()+,-.:;<=>?@`~"""
 
 
-class WordGenerator():
-    ''' Cleanses input and converts into words. Needs all sentences to be in
+class WordGenerator:
+    """ Cleanses input and converts into words. Needs all sentences to be in
         Unicode format. Has subclasses that read sentences differently based on
         file type.
 
     Takes a generator as input. This can be from e.g. a file.
     unicode_handling in ['ignore_sentence', 'convert_punctuation', 'allow']
     unicode_handling in ['ignore_emoji', 'ignore_sentence', 'allow']
-    '''
+    """
 
-    def __init__(self, stream, allow_unicode_text=False, ignore_emojis=True,
-                 remove_variation_selectors=True, break_replacement=True):
+    def __init__(
+        self,
+        stream,
+        allow_unicode_text=False,
+        ignore_emojis=True,
+        remove_variation_selectors=True,
+        break_replacement=True,
+    ):
         self.stream = stream
         self.allow_unicode_text = allow_unicode_text
         self.remove_variation_selectors = remove_variation_selectors
@@ -84,7 +91,7 @@ class WordGenerator():
                 return []
             else:
                 converted_words.append(c_w)
-        sentence = ' '.join(converted_words)
+        sentence = " ".join(converted_words)
 
         words = tokenize(sentence)
         words = [process_word(w) for w in words]
@@ -94,7 +101,7 @@ class WordGenerator():
         """ Returns whether a word is ASCII """
 
         try:
-            word.decode('ascii')
+            word.decode("ascii")
             return True
         except (AttributeError, UnicodeDecodeError, UnicodeEncodeError):
             return False
@@ -110,14 +117,14 @@ class WordGenerator():
                 # Check if all punctuation and therefore fine
                 # to include unidecoded version
                 allowed_punct = punct_word(
-                    decoded_c,
-                    punctuation=ALLOWED_CONVERTED_UNICODE_PUNCTUATION)
+                    decoded_c, punctuation=ALLOWED_CONVERTED_UNICODE_PUNCTUATION
+                )
 
                 if allowed_punct:
                     word_converted_punct.append(decoded_c)
                 else:
                     word_converted_punct.append(c)
-        return ''.join(word_converted_punct)
+        return "".join(word_converted_punct)
 
     def convert_unicode_word(self, word):
         """ Converts Unicode words to ASCII using unidecode. If Unicode is not
@@ -147,7 +154,7 @@ class WordGenerator():
             # Sometimes we might want to simply ignore Unicode sentences
             # (e.g. for vocabulary creation). This is another way to prevent
             # "polution" of strange Unicode tokens from low quality datasets
-            return False, ''
+            return False, ""
 
     def data_preprocess_filtering(self, line, iter_i):
         """ To be overridden with specific preprocessing/filtering behavior
@@ -182,23 +189,25 @@ class WordGenerator():
 
         info = {}
 
-        pre_valid, pre_line, pre_info = \
-            self.data_preprocess_filtering(line, self.stats['total'])
+        pre_valid, pre_line, pre_info = self.data_preprocess_filtering(
+            line, self.stats["total"]
+        )
         info.update(pre_info)
         if not pre_valid:
-            self.stats['pretokenization_filtered'] += 1
+            self.stats["pretokenization_filtered"] += 1
             return False, [], info
 
         words = self.get_words(pre_line)
         if len(words) == 0:
-            self.stats['unicode_filtered'] += 1
+            self.stats["unicode_filtered"] += 1
             return False, [], info
 
-        post_valid, post_words, post_info = \
-            self.data_postprocess_filtering(words, self.stats['total'])
+        post_valid, post_words, post_info = self.data_postprocess_filtering(
+            words, self.stats["total"]
+        )
         info.update(post_info)
         if not post_valid:
-            self.stats['posttokenization_filtered'] += 1
+            self.stats["posttokenization_filtered"] += 1
         return post_valid, post_words, info
 
     def generate_array_from_input(self):
@@ -208,11 +217,13 @@ class WordGenerator():
         return sentences
 
     def reset_stats(self):
-        self.stats = {'pretokenization_filtered': 0,
-                      'unicode_filtered': 0,
-                      'posttokenization_filtered': 0,
-                      'total': 0,
-                      'valid': 0}
+        self.stats = {
+            "pretokenization_filtered": 0,
+            "unicode_filtered": 0,
+            "posttokenization_filtered": 0,
+            "total": 0,
+            "valid": 0,
+        }
 
     def __iter__(self):
         if self.stream is None:
@@ -224,21 +235,28 @@ class WordGenerator():
             # Words may be filtered away due to unidecode etc.
             # In that case the words should not be passed on.
             if valid and len(words):
-                self.stats['valid'] += 1
+                self.stats["valid"] += 1
                 yield words, info
 
-            self.stats['total'] += 1
+            self.stats["total"] += 1
 
 
 class TweetWordGenerator(WordGenerator):
-    ''' Returns np array or generator of ASCII sentences for given tweet input.
+    """ Returns np array or generator of ASCII sentences for given tweet input.
         Any file opening/closing should be handled outside of this class.
-    '''
+    """
 
-    def __init__(self, stream, wanted_emojis=None, english_words=None,
-                 non_english_user_set=None, allow_unicode_text=False,
-                 ignore_retweets=True, ignore_url_tweets=True,
-                 ignore_mention_tweets=False):
+    def __init__(
+        self,
+        stream,
+        wanted_emojis=None,
+        english_words=None,
+        non_english_user_set=None,
+        allow_unicode_text=False,
+        ignore_retweets=True,
+        ignore_url_tweets=True,
+        ignore_mention_tweets=False,
+    ):
 
         self.wanted_emojis = wanted_emojis
         self.english_words = english_words
@@ -246,13 +264,12 @@ class TweetWordGenerator(WordGenerator):
         self.ignore_retweets = ignore_retweets
         self.ignore_url_tweets = ignore_url_tweets
         self.ignore_mention_tweets = ignore_mention_tweets
-        WordGenerator.__init__(self, stream,
-                               allow_unicode_text=allow_unicode_text)
+        WordGenerator.__init__(self, stream, allow_unicode_text=allow_unicode_text)
 
     def validated_tweet(self, data):
-        ''' A bunch of checks to determine whether the tweet is valid.
+        """ A bunch of checks to determine whether the tweet is valid.
             Also returns emojis contained by the tweet.
-        '''
+        """
 
         # Ordering of validations is important for speed
         # If it passes all checks, then the tweet is validated for usage
@@ -279,28 +296,42 @@ class TweetWordGenerator(WordGenerator):
         else:
             uniq_emojis = []
 
-        if self.non_english_user_set is not None and \
-           non_english_user(data[1], self.non_english_user_set):
+        if self.non_english_user_set is not None and non_english_user(
+            data[1], self.non_english_user_set
+        ):
             return False, []
         return True, uniq_emojis
 
     def data_preprocess_filtering(self, line, iter_i):
         fields = line.strip().split("\t")
         valid, emojis = self.validated_tweet(fields)
-        text = fields[9].replace('\\n', '') \
-                        .replace('\\r', '') \
-                        .replace('&amp', '&') if valid else ''
-        return valid, text, {'emojis': emojis}
+        text = (
+            fields[9].replace("\\n", "").replace("\\r", "").replace("&amp", "&")
+            if valid
+            else ""
+        )
+        return valid, text, {"emojis": emojis}
 
     def data_postprocess_filtering(self, words, iter_i):
         valid_length = correct_length(words, 1, None)
-        valid_english, n_words, n_english = mostly_english(words,
-                                                           self.english_words)
+        valid_english, n_words, n_english = mostly_english(words, self.english_words)
         if valid_length and valid_english:
-            return True, words, {'length': len(words),
-                                 'n_normal_words': n_words,
-                                 'n_english': n_english}
+            return (
+                True,
+                words,
+                {
+                    "length": len(words),
+                    "n_normal_words": n_words,
+                    "n_english": n_english,
+                },
+            )
         else:
-            return False, [], {'length': len(words),
-                               'n_normal_words': n_words,
-                               'n_english': n_english}
+            return (
+                False,
+                [],
+                {
+                    "length": len(words),
+                    "n_normal_words": n_words,
+                    "n_english": n_english,
+                },
+            )

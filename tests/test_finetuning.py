@@ -11,30 +11,26 @@ from deepmoji.finetuning import (
     change_trainable,
     relabel,
     finetune,
-    load_benchmark
+    load_benchmark,
 )
-from deepmoji.global_variables import (
-    PRETRAINED_PATH,
-    NB_TOKENS,
-    VOCAB_PATH
-)
+from deepmoji.global_variables import PRETRAINED_PATH, NB_TOKENS, VOCAB_PATH
 from deepmoji.model_def import (
     deepmoji_transfer,
     deepmoji_feature_encoding,
-    deepmoji_emojis
+    deepmoji_emojis,
 )
 from deepmoji.sentence_tokenizer import SentenceTokenizer
 
 
 def get_vocabulary():
-    with open(VOCAB_PATH, 'r') as f:
+    with open(VOCAB_PATH, "r") as f:
         return json.load(f)
 
 
 def test_calculate_batchsize_maxlen():
     """ Batch size and max length are calculated properly.
     """
-    texts = ['a b c d', 'e f g h i']
+    texts = ["a b c d", "e f g h i"]
     batch_size, maxlen = calculate_batchsize_maxlen(texts)
     assert batch_size == 250
     assert maxlen == 10
@@ -44,7 +40,7 @@ def test_freeze_layers():
     """ Correct layers are frozen.
     """
     model = deepmoji_transfer(5, 30)
-    keyword = 'softmax'
+    keyword = "softmax"
 
     model = freeze_layers(model, unfrozen_keyword=keyword)
 
@@ -70,8 +66,9 @@ def test_deepmoji_transfer_extend_embedding():
     """ Defining deepmoji with extension.
     """
     extend_with = 50
-    model = deepmoji_transfer(5, 30, weight_path=PRETRAINED_PATH,
-                              extend_embedding=extend_with)
+    model = deepmoji_transfer(
+        5, 30, weight_path=PRETRAINED_PATH, extend_embedding=extend_with
+    )
     embedding_layer = model.layers[1]
     assert embedding_layer.input_dim == NB_TOKENS + extend_with
 
@@ -82,15 +79,19 @@ def test_deepmoji_return_attention():
     # check correct number of outputs
     assert 1 == len(model.outputs)
     # check model outputs come from correct layers
-    assert [['softmax', 0, 0]] == model.get_config()['output_layers']
+    assert [["softmax", 0, 0]] == model.get_config()["output_layers"]
     # ensure that output shapes are correct (assume a 5-example batch of 30-timesteps)
     input_shape = (5, 30, 2304)
     assert (5, 2304) == model.layers[6].compute_output_shape(input_shape)
 
     # repeat above described tests when returning attention weights
-    model = deepmoji_emojis(maxlen=30, weight_path=PRETRAINED_PATH, return_attention=True)
+    model = deepmoji_emojis(
+        maxlen=30, weight_path=PRETRAINED_PATH, return_attention=True
+    )
     assert 2 == len(model.outputs)
-    assert [['softmax', 0, 0], ['attlayer', 0, 1]] == model.get_config()['output_layers']
+    assert [["softmax", 0, 0], ["attlayer", 0, 1]] == model.get_config()[
+        "output_layers"
+    ]
     assert [(5, 2304), (5, 30)] == model.layers[6].compute_output_shape(input_shape)
 
 
@@ -98,11 +99,9 @@ def test_relabel():
     """ relabel() works with multi-class labels.
     """
     nb_classes = 3
-    inputs = np.array([
-        [True, False, False],
-        [False, True, False],
-        [True, False, True],
-    ])
+    inputs = np.array(
+        [[True, False, False], [False, True, False], [True, False, True],]
+    )
     expected_0 = np.array([True, False, True])
     expected_1 = np.array([False, True, False])
     expected_2 = np.array([False, False, True])
@@ -121,12 +120,12 @@ def test_relabel_binary():
     assert np.array_equal(relabel(inputs, 0, nb_classes), inputs)
 
 
-DATA_DIR = join(dirname(dirname(abspath(__file__))), 'data')
+DATA_DIR = join(dirname(dirname(abspath(__file__))), "data")
 SS_YOUTUBE_DATASET_DIR = join(DATA_DIR, "SS-Youtube")
 SS_YOUTUBE_DATASET_PATH = join(SS_YOUTUBE_DATASET_DIR, "raw.pickle")
 
 
-@attr('slow')
+@attr("slow")
 def test_finetune_full():
     """ finetuning using 'full'.
     """
@@ -134,17 +133,25 @@ def test_finetune_full():
     min_acc = 0.65
 
     data = load_benchmark(SS_YOUTUBE_DATASET_PATH, get_vocabulary(), extend_with=10000)
-    model = deepmoji_transfer(nb_classes, data['maxlen'], PRETRAINED_PATH,
-                              extend_embedding=data['added'])
+    model = deepmoji_transfer(
+        nb_classes, data["maxlen"], PRETRAINED_PATH, extend_embedding=data["added"]
+    )
     model.summary()
-    model, acc = finetune(model, data['texts'], data['labels'], nb_classes,
-                          data['batch_size'], method='full', nb_epochs=1)
+    model, acc = finetune(
+        model,
+        data["texts"],
+        data["labels"],
+        nb_classes,
+        data["batch_size"],
+        method="full",
+        nb_epochs=1,
+    )
 
     print("Finetune full SS-Youtube 1 epoch acc: {}".format(acc))
     assert acc >= min_acc
 
 
-@attr('slow')
+@attr("slow")
 def test_finetune_last():
     """ finetuning using 'last'.
     """
@@ -153,23 +160,30 @@ def test_finetune_last():
 
     data = load_benchmark(SS_YOUTUBE_DATASET_PATH, get_vocabulary())
 
-    model = deepmoji_transfer(nb_classes, data['maxlen'], PRETRAINED_PATH)
+    model = deepmoji_transfer(nb_classes, data["maxlen"], PRETRAINED_PATH)
     model.summary()
-    model, acc = finetune(model, data['texts'], data['labels'], nb_classes,
-                          data['batch_size'], method='last', nb_epochs=1)
+    model, acc = finetune(
+        model,
+        data["texts"],
+        data["labels"],
+        nb_classes,
+        data["batch_size"],
+        method="last",
+        nb_epochs=1,
+    )
 
     print(("Finetune last SS-Youtube 1 epoch acc: {}".format(acc)))
     assert acc >= min_acc
 
 
 TEST_SENTENCES = [
-    'I love mom\'s cooking',
-    'I love how you never reply back..',
-    'I love cruising with my homies',
-    'I love messing with yo mind!!',
-    'I love you and now you\'re just gone..',
-    'This is shit',
-    'This is the shit'
+    "I love mom's cooking",
+    "I love how you never reply back..",
+    "I love cruising with my homies",
+    "I love messing with yo mind!!",
+    "I love you and now you're just gone..",
+    "This is shit",
+    "This is the shit",
 ]
 
 
@@ -179,7 +193,7 @@ def top_elements(array, k):
     ind = np.argpartition(array, -k)[-k:]
     return ind[np.argsort(array[ind])][::-1]
 
-  
+
 def test_score_emoji():
     """ Emoji predictions make sense.
     """
@@ -191,7 +205,7 @@ def test_score_emoji():
         np.array([54, 44, 9, 50, 49]),
         np.array([46, 5, 27, 35, 34]),
         np.array([55, 32, 27, 1, 37]),
-        np.array([48, 11, 6, 31, 9])
+        np.array([48, 11, 6, 31, 9]),
     ]
 
     st = SentenceTokenizer(get_vocabulary(), fixed_length=maxlen)
@@ -200,7 +214,9 @@ def test_score_emoji():
     prob = model.predict(tokenized)
     # Find top emojis for each sentence
     for i, t_prob in enumerate(prob):
-        assert np.array_equal(top_elements(t_prob, 5), TEST_SENTENCES_EXPECTED_EMOJI_INDEXES[i])
+        assert np.array_equal(
+            top_elements(t_prob, 5), TEST_SENTENCES_EXPECTED_EMOJI_INDEXES[i]
+        )
 
 
 def test_encode_texts():
@@ -212,4 +228,6 @@ def test_encode_texts():
     model = deepmoji_feature_encoding(maxlen=maxlen, weight_path=PRETRAINED_PATH)
     prob = model.predict(tokenized)
     avg_across_sentences = np.around(np.mean(prob, axis=0)[:5], 3)
-    assert np.allclose(avg_across_sentences, np.array([-0.023, 0.021, -0.037, -0.001, -0.005]))
+    assert np.allclose(
+        avg_across_sentences, np.array([-0.023, 0.021, -0.037, -0.001, -0.005])
+    )

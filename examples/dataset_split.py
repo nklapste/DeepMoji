@@ -1,4 +1,4 @@
-'''
+"""
 Split a given dataset into three different datasets: training, validation and
 testing.
 
@@ -12,7 +12,7 @@ each sentence.
 
 An additional parameter can be set 'extend_with', which will extend the given
 vocabulary with up to 'extend_with' tokens, taken from the training dataset.
-'''
+"""
 
 import json
 
@@ -20,32 +20,32 @@ from deepmoji.global_variables import VOCAB_PATH
 from deepmoji.sentence_tokenizer import SentenceTokenizer
 
 DATASET = [
-    'I am sentence 0',
-    'I am sentence 1',
-    'I am sentence 2',
-    'I am sentence 3',
-    'I am sentence 4',
-    'I am sentence 5',
-    'I am sentence 6',
-    'I am sentence 7',
-    'I am sentence 8',
-    'I am sentence 9 newword',
+    "I am sentence 0",
+    "I am sentence 1",
+    "I am sentence 2",
+    "I am sentence 3",
+    "I am sentence 4",
+    "I am sentence 5",
+    "I am sentence 6",
+    "I am sentence 7",
+    "I am sentence 8",
+    "I am sentence 9 newword",
 ]
 
 INFO_DICTS = [
-    {'label': 'sentence 0'},
-    {'label': 'sentence 1'},
-    {'label': 'sentence 2'},
-    {'label': 'sentence 3'},
-    {'label': 'sentence 4'},
-    {'label': 'sentence 5'},
-    {'label': 'sentence 6'},
-    {'label': 'sentence 7'},
-    {'label': 'sentence 8'},
-    {'label': 'sentence 9'},
+    {"label": "sentence 0"},
+    {"label": "sentence 1"},
+    {"label": "sentence 2"},
+    {"label": "sentence 3"},
+    {"label": "sentence 4"},
+    {"label": "sentence 5"},
+    {"label": "sentence 6"},
+    {"label": "sentence 7"},
+    {"label": "sentence 8"},
+    {"label": "sentence 9"},
 ]
 
-with open(VOCAB_PATH, 'r') as f:
+with open(VOCAB_PATH, "r") as f:
     vocab = json.load(f)
 st = SentenceTokenizer(vocab, 30)
 
@@ -53,7 +53,8 @@ st = SentenceTokenizer(vocab, 30)
 print(st.split_train_val_test(DATASET, INFO_DICTS))
 
 # Split explicitly
-print(st.split_train_val_test(DATASET,
-                              INFO_DICTS,
-                              [[0, 1, 2, 4, 9], [5, 6], [7, 8, 3]],
-                              extend_with=1))
+print(
+    st.split_train_val_test(
+        DATASET, INFO_DICTS, [[0, 1, 2, 4, 9], [5, 6], [7, 8, 3]], extend_with=1
+    )
+)
