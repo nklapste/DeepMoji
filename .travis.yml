@@ -3,6 +3,8 @@ language: python
 notifications:
   email: false
 
+cache: pip
+
 stages:
   - lint
   - test
