@@ -1,25 +1,56 @@
-dist: trusty
 language: python
+
 notifications:
   email: false
-cache:
-  pip: true
-matrix:
+
+stages:
+  - lint
+  - test
+
+before_install:
+  - pip install codecov
+
+install:
+  - pip install -e .[tensorflow_backend]
+
+before_script:
+  - python scripts/download_weights.py
+script:
+  - nosetests -v --with-coverage
+
+after_success:
+  - codecov
+
+jobs:
   include:
-    - python: 2.7
+    - stage: lint
+      name: "flake8"
+      python:
+        - 3.6
+      before_install:
+        - pip install flake8
+      before_script: skip
+      script:
+        - flake8 deepmoji examples scripts tests --ignore=F403,E501,E123,E128,E402,F401,F841,F811
+      after_script: skip
+    - stage: test
+      python: 3.6
     - os: osx
       osx_image: xcode9.1
-      language: generic
+      python: 3.6
       before_install:
       - virtualenv env
       - source env/bin/activate
       - curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
       - python get-pip.py
-install:
-  - pip install nose flake8 tensorflow==1.4.0
-  - pip install -e .
-script:
-  - flake8 deepmoji examples scripts tests --ignore=F403,E501,E123,E128,E402,F401,F841,F811
-  - python scripts/download_weights.py
-  - cd tests
-  - nosetests -v
+      - pip install codecov
+    - os: windows
+      language: sh
+      python: "3.7"
+      before_install:
+        - choco install python --version 3.7.2
+        - export PATH="/c/Python37:/c/Python37/Scripts:$PATH"
+        - python -m pip install --upgrade pip wheel
+        - python -m pip install codecov
+      after_success:
+        - python -m codecov
