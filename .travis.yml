@@ -35,6 +35,16 @@ jobs:
       script:
         - flake8 deepmoji examples scripts tests --ignore=F403,E501,E123,E128,E402,F401,F841,F811
       after_script: skip
+    - name: "twine check"
+      python:
+        - 3.6
+      before_install:
+        - pip install docutils twine
+      before_script:
+        - python setup.py sdist
+      script:
+        - twine check dist/*
+      after_script: skip
     - stage: test
       python: 3.6
     - os: osx
