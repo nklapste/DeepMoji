@@ -200,7 +200,7 @@ def test_score_emoji():
     prob = model.predict(tokenized)
     # Find top emojis for each sentence
     for i, t_prob in enumerate(prob):
-        assert np.array_equal(top_elements(t_prob, 5), TEST_SENTENCES_EXPECTED_EMOJI_INDEXES[i])
+        assert np.array_equal(top_elements(t_prob, 5), expected[i])
 
 
 def test_encode_texts():
