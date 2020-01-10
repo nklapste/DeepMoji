@@ -179,7 +179,7 @@ def top_elements(array, k):
     ind = np.argpartition(array, -k)[-k:]
     return ind[np.argsort(array[ind])][::-1]
 
-  
+
 def test_score_emoji():
     """ Emoji predictions make sense.
     """
