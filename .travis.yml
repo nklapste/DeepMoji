@@ -8,6 +8,7 @@ cache: pip
 stages:
   - lint
   - test
+  - build
 
 before_install:
   - pip install codecov nose
@@ -79,3 +80,20 @@ jobs:
         - python -m pip install codecov nose
       after_success:
         - python -m codecov
+    - stage: build
+      name: "sdist"
+      python:
+        - 3.6
+      before_script: skip
+      script:
+        - python setup.py sdist
+      after_script: skip
+    - name: "bdist_wheel"
+      python:
+        - 3.6
+      install:
+        - pip install . wheel
+      before_script: skip
+      script:
+        - python setup.py bdist_wheel
+      after_script: skip
