@@ -1,0 +1,5 @@
+# non-raw pickle files
+*/*.pickle
+
+# do track raw.pickle files
+!*/raw.pickle
