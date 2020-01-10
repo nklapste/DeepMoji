@@ -34,7 +34,7 @@ jobs:
         - pip install flake8
       before_script: skip
       script:
-        - flake8 deepmoji examples scripts tests --ignore=F403,E501,E123,E128,E402,F401,F841,F811
+        - flake8 deepmoji examples scripts tests --ignore=E501,E123,E128,E231,E402,F401,F403,F841,F811,W503
       after_script: skip
     - name: "twine check"
       python:

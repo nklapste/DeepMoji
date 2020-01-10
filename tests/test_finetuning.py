@@ -99,9 +99,7 @@ def test_relabel():
     """ relabel() works with multi-class labels.
     """
     nb_classes = 3
-    inputs = np.array(
-        [[True, False, False], [False, True, False], [True, False, True],]
-    )
+    inputs = np.array([[True, False, False], [False, True, False], [True, False, True]])
     expected_0 = np.array([True, False, True])
     expected_1 = np.array([False, True, False])
     expected_2 = np.array([False, False, True])
